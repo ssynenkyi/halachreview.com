@@ -1,0 +1,44 @@
+﻿@using BlogEngine.Core
+@{
+    var name = Security.CurrentUser.Identity.Name;
+    var src = Utils.ApplicationRelativeWebRoot + "Content/images/blog/noavatar.jpg";
+    var displayName = "Anonymous";
+
+    var profile = AuthorProfile.GetProfile(name);
+    if (profile != null)
+    {
+        if (!string.IsNullOrEmpty(profile.PhotoUrl))
+        {
+            src = Utils.ApplicationRelativeWebRoot + "image.axd?picture=/avatars/" + profile.PhotoUrl;
+        }
+        displayName = profile.DisplayName;
+    }
+}
+<div class="nav-user">
+    <div class="nav-user-info">
+        <a href="/">
+            <div class="nav-user-img">
+                <img src="@src" />
+            </div>
+            <div class="nav-user-name text-ellipsis">@displayName</div>
+        </a>
+    </div>
+    <ul class="nav-user-actions clearfix">
+        <li title="@Resources.labels.logoff"><a href="~/Account/login.aspx?logoff"><i class="fa fa-power-off"></i></a></li>
+        <li title="@Resources.labels.changePassword"><a href="~/Account/change-password.aspx" target="_blank"><i class="fa fa-key"></i></a></li>
+        <li title="@Resources.labels.profile"><a href="~/admin/#/security/profile"><i class="fa fa-user"></i></a></li>
+        <li title="@Resources.labels.viewMyBlog"><a href="@Utils.RelativeOrAbsoluteWebRoot" target="_blank"><i class="fa fa-globe"></i></a></li>
+    </ul>
+</div>
+<div class="nav-sidebar">
+    <ul data-ng-controller="NavController">
+        <li id="mu-posts" data-ng-class="{ active: isActive('/content/posts')}"><a href="{{SiteVars.RelativeWebRoot}}admin/#/content/posts">@Resources.labels.posts</a></li>
+        @*<li data-ng-class="{ active: isActive('/content/categories')}"><a href="{{SiteVars.RelativeWebRoot}}admin/#/content/categories">@Resources.labels.categories</a></li>*@
+        <li data-ng-class="{ active: isActive('/settings/basic')}"><a class="ng-binding" href="{{SiteVars.RelativeWebRoot}}admin/#/settings/basic">Settings</a></li>
+    </ul>
+</div>
+@*<div class="logo-sidebar">
+        <a href="http://dotnetblogengine.net/" target="_blank" title="BlogEngine.NET - Version @BlogSettings.Instance.Version()">
+             <img src="~/admin/themes/standard/img/logo-sidebar.png" alt="BlogEngine.NET"/>
+         </a>
+    </div>*@

@@ -1,0 +1,209 @@
+﻿@using BlogEngine.Core
+@using BlogEngine.Core.Data.Models
+@{
+    var searchField = SearchByField.ChapterVerses;
+    if (Context.Request.QueryString["searchField"] != null)
+    {
+        Enum.TryParse(HttpUtility.HtmlDecode(Context.Request.QueryString["searchField"]), out searchField);
+    }
+
+    var text = Context.Request.QueryString["q"] != null && Context.Request.QueryString["q"] != "none"
+            ? HttpUtility.HtmlEncode(Context.Request.QueryString["q"])
+            : "";
+
+    var chapter = Context.Request.QueryString["chapterId"] != null
+            ? HttpUtility.HtmlEncode(Context.Request.QueryString["chapterId"])
+            : "";
+    var verseFrom = Context.Request.QueryString["verseFrom"] != null
+           ? HttpUtility.HtmlEncode(Context.Request.QueryString["verseFrom"])
+           : "";
+    var verseTo = Context.Request.QueryString["verseTo"] != null
+           ? HttpUtility.HtmlEncode(Context.Request.QueryString["verseTo"])
+           : "";
+
+    var widgetId = Model.Id;
+}
+<script src="~/Scripts/input-spinner.js"></script>
+
+<div class="Widget widget search">
+    <div style="width: 100%; margin-bottom: 20px;">
+
+    </div>
+    <div class="WidgetContent widget-content">
+        <div class="only-summary">
+            <input type="checkbox" id="cbxOnlySummary" onchange="onOnlySummaryChanged()" /> Only Summary
+        </div>
+        <div id="searchbox">
+            <div class="search-layout">
+                <div class="styleSelect">
+                    <select id="ddlSearchType-@widgetId" onchange="searchTypeChanged('ddlSearchType-@widgetId')">
+                        @foreach (var searchType in Enum.GetValues(typeof(SearchByField)))
+                        {
+                            var selected = (SearchByField)searchType == searchField ? "selected" : "";@:
+                            <option name="@searchType" @selected> @(((SearchByField)searchType).DescriptionGet()) </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="search-layout">
+                <div class="chapter-search">
+                    <div class="search-comment-container">
+                        Chapter
+                    </div>
+                    <input type="number" id="chapterId" class="chapter-number spinner" min="1" max="999" value="@chapter" style="width: 35px !important" />
+                    <div class="search-comment-container">
+                        Verse(s)
+                    </div>
+                    <input type="number" id="verseFrom" class="verse-diapason spinner" min="1" max="99" value="@verseFrom" />
+                    <div class="search-comment-container">
+                        -
+                    </div>
+                    <input type="number" id="verseTo" class="verse-diapason spinner" min="1" max="99" value="@verseTo" />
+                    <br/>
+                    <div class="search-error-holder" style="margin-top: -54px">
+                        <label id="errorMessage" class="error-message"></label>
+                    </div>
+                </div>
+
+                <div class="keyword-search">
+                    <input type="text"
+                           onblur="BlogEngine.customSearchClear('@text', 'txt-@widgetId')"
+                           onfocus="BlogEngine.customSearchClear('@text', 'txt-@widgetId')"
+                           onkeypress="if (event.keyCode == 13) return onSearch();"
+                           id="txt-@widgetId"
+                           placeholder="Enter keyword"
+                           value="@text" />
+                </div>
+            </div>
+
+            <div class="search-layout">
+                <input type="button"
+                       onkeypress="onSearch();"
+                       onclick="onSearch();"
+                       id="searchbutton"
+                       value="Search"
+                       class="btn btn-primary" />
+            </div>
+        </div>
+        <div class="clearfix-search-layout"></div>
+    </div>
+</div>
+<script type="text/javascript">
+    $(function () {
+        spinner($('input.spinner'), '@Utils.RelativeWebRoot');
+        $('#chapterId').parent().parent().find('div.spin-btn').each(function() {
+            $(this).css("width", "35px");
+        });
+        fromCookieSearchInit();
+        searchTypeChanged('ddlSearchType-@widgetId');
+    });
+
+    function onSearch() {
+        var onlySummary = $('#cbxOnlySummary').prop("checked");
+        var searchType = $("#ddlSearchType-@widgetId option:selected").attr('name');
+        if (searchType == 'ChapterVerses') {
+            var chapterValue = parseInt($('#chapterId').val(), 10);
+            var verseFromValue = parseInt($('#verseFrom').val(), 10);
+            var verseToValue = parseInt($('#verseTo').val(), 10);
+            var $errorLabel = $('#errorMessage');
+            var error = false;
+            if (verseFromValue == undefined || chapterValue <= 0) {
+                $errorLabel.html('Invalid chapter number');
+                error = true;
+            }
+            if (verseFromValue == undefined || verseFromValue < 0 ||
+                verseToValue == undefined || verseToValue < 0 ||
+                verseToValue < verseFromValue) {
+                $errorLabel.html('Invalid verse diapason');
+                error = true;
+            }
+            if (!error) {
+                customSearch('@Utils.RelativeWebRoot', searchType, '', chapterValue, verseFromValue, verseToValue, onlySummary);
+            }
+        } else {
+            customSearch('@Utils.RelativeWebRoot', searchType, $('#txt-@widgetId').val(), 0, 0, 0, onlySummary);
+        }
+    }
+    function customSearch(root, searchType, searchValue, chapterId, verseFrom, verseTo, onlySummary) {
+        //debugger;
+        var keyword = (searchValue == undefined || searchValue == '') ? 'none' : searchValue;
+        BlogEngine.setCookieValue('keyword', encodeURIComponent(keyword));
+        BlogEngine.setCookieValue('searchField', searchType);
+        BlogEngine.setCookieValue('chapterId', chapterId);
+        BlogEngine.setCookieValue('verseFrom', verseFrom);
+        BlogEngine.setCookieValue('verseTo', verseTo);
+        BlogEngine.setCookieValue('onlySummary', onlySummary);
+
+        top.location.href = top.location.href;
+
+        return false;
+    }
+    function searchTypeChanged(searchSelectId) {
+        if ($("#" + searchSelectId + " option:selected").attr('name') == "ChapterVerses") {
+            $('.keyword-search').css('display', 'none');
+            $('.chapter-search').css('display', 'block');
+        } else {
+            $('.keyword-search').css('display', 'block');
+            $('.chapter-search').css('display', 'none');
+        }
+    }
+    function onOnlySummaryChanged() {
+        var onlySummary = $('#cbxOnlySummary').prop("checked");
+        onlySummaryInit(onlySummary);
+        cookieValueSet(onlySummary);
+    }
+    function onlySummaryInit(onlySupply) {
+        if (onlySupply) {
+            $('.post-body').hide();
+            $('.post-summary').addClass('white-summary');
+        } else {
+            $('.post-body').show();
+            $('.post-summary').removeClass('white-summary');
+        }
+    }
+    function cookieValueSet(onlySummary) {
+        document.cookie = "onlySummary=" + onlySummary.toString();
+    }
+    function fromCookieSearchInit() {
+        //debugger;
+        var keyword = getCookie('keyword');
+        if (keyword != undefined && keyword != '' && keyword != 'none') {
+            $('#txt-@widgetId').val(keyword);
+        }
+
+        var searchField = getCookie('searchField');
+        if (searchField != undefined && searchField != '') {
+            $('#ddlSearchType-@widgetId select').val(searchField);
+        }
+        
+        $("#ddlSearchType-@widgetId option").filter(function () {
+            return $(this).attr('name') == searchField;
+        }).prop('selected', true);
+
+
+        var chapterId = getCookie('chapterId');
+        if (chapterId != undefined && chapterId != '' && chapterId != 0) {
+            $('#chapterId').val(chapterId);
+        }
+
+        var verseFrom = getCookie('verseFrom');
+        if (verseFrom != undefined && verseFrom != '' && verseFrom != 0) {
+            $('#verseFrom').val(verseFrom);
+        }
+
+        var verseTo = getCookie('verseTo');
+        if (verseTo != undefined && verseTo != '' && verseTo != 0) {
+            $('#verseTo').val(verseTo);
+        }
+
+        var onlySummary = getCookie('onlySummary') == 'true';
+        $('#cbxOnlySummary').prop("checked", onlySummary);
+        onlySummaryInit(onlySummary);
+
+    }
+    function getCookie(name) {
+        var re = new RegExp(name + "=([^;]+)");
+        var value = re.exec(document.cookie);
+        return (value != null) ? unescape(value[1]) : null;
+    }
+</script>
